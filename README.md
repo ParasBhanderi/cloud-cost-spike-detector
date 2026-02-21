@@ -74,63 +74,52 @@ It is:
 
 # System Architecture:
 
-flowchart TB
-%% =======================
-%% Cloud Cost Spike Detector (FinOps ML)
-%% =======================
+```mermaid
+flowchart LR
+  %% High-level Architecture (VP-friendly)
 
-subgraph Sources[Cloud Billing Sources]
-A1[AWS CUR / Cost & Usage Report]
-A2[Azure Cost Export]
-A3[GCP Billing Export]
-end
+  subgraph S[Cloud Billing Sources]
+    AWS[AWS CUR]
+    AZ[Azure Cost Export]
+    GCP[GCP Billing Export]
+  end
 
-subgraph Ingestion[Ingestion & Storage]
-B1[Batch Loader / ETL\n(Pandas / Airflow optional)]
-B2[(Object Storage)\nS3 / GCS / Blob]
-B3[(Analytics Store)\nPostgres / DuckDB]
-end
+  subgraph I[Ingestion & Storage]
+    ETL[Batch Loader / ETL]
+    OBJ[(Object Storage)]
+    DB[(Analytics Store)]
+  end
 
-subgraph ML[ML + Feature Engineering]
-C1[Feature Builder\nRolling stats, pct-change, seasonality]
-C2[Model Service\nIsolation Forest + thresholds]
-C3[Explainability\nImpact vs baseline, top services]
-end
+  subgraph M[ML Detection]
+    FE[Feature Engineering]
+    MODEL[Isolation Forest Detector]
+    EXPL[Explainability + Impact Estimation]
+  end
 
-subgraph API[Serving Layer]
-D1[FastAPI\n/detect\n/detect/summary]
-D2[Schema Validation\nPydantic]
-end
+  subgraph A[Serving Layer]
+    API[FastAPI Service\n/detect\n/detect/summary]
+  end
 
-subgraph UI[Executive Dashboard]
-E1[Streamlit UI\nKPIs + Trends + Breakdowns]
-E2[Recommendations\nRightsizing / Tag hygiene / Spot checks]
-end
+  subgraph U[Executive Dashboard]
+    UI[Streamlit Dashboard\nKPIs • Forecast • Budget Risk\nService Breakdown • Recommendations]
+  end
 
-subgraph Observability[Ops & Observability]
-F1[Logs\nStructured JSON]
-F2[Metrics\nLatency, errors, anomaly rate]
-F3[Tracing\nAPI request traces]
-end
+  subgraph O[Ops]
+    OBS[Logging • Metrics • Tracing]
+    CICD[GitHub Actions\nTests • Lint • Build • Docker]
+    DEPLOY[Deploy\nVM / K8s / Cloud Run]
+  end
 
-subgraph CICD[Delivery]
-G1[GitHub Actions\nTests + Lint + Build]
-G2[Docker Images\nAPI + UI]
-G3[Deploy\nVM / K8s / Cloud Run]
-end
+  AWS --> ETL
+  AZ --> ETL
+  GCP --> ETL
 
-Sources --> B1 --> B2
-B2 --> B3
-B3 --> C1 --> C2 --> C3
-C3 --> D1
-D2 --> D1
-D1 --> E1 --> E2
+  ETL --> OBJ --> DB
+  DB --> FE --> MODEL --> EXPL --> API --> UI
 
-D1 --> F1
-D1 --> F2
-D1 --> F3
-
-G1 --> G2 --> G3
+  API --> OBS
+  CICD --> DEPLOY
+```
 
 ## 🧩 System Design (Production-ready)
 
